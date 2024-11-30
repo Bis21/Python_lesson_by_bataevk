@@ -92,6 +92,12 @@ ScreenManager:
 	    QuizScreen:
     ```
 
+### **Спосбо смены экрана через событие кнопки**:
+`app.root.current` = '[ИМЯ ЭКРАНА]'
+```kv
+on_release: app.root.current = "quiz"
+```
+
 
 ## **3. Кнопки в KivyMD**
 
