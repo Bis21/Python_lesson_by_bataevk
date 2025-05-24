@@ -49,6 +49,39 @@ class Button:
         return event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos)
     
 
+class CheckBox:
+    def __init__(self, x, y, text, size=20, checked=False, passed_color=GREEN, color=WHITE):
+        self.rect = pygame.Rect(x, y, size, size)
+        self.checked = checked
+        self.color = color
+        self.passed_color = passed_color
+        self.text = text
+    
+    def draw(self, surface):
+        font = pygame.font.SysFont("Arial", 20)
+        text_surface = font.render(self.text, True, WHITE)
+        text_rect = text_surface.get_rect(left=self.rect.right + 5, centery=self.rect.centery)
+        surface.blit(text_surface, text_rect)
+        pygame.draw.rect(surface, self.passed_color if self.checked else self.color, self.rect)
+    
+    def toggle(self):
+        """Toggle the checkbox state."""
+        print(f"Checkbox state before toggle: {self.checked}")
+        self.checked = not self.checked
+        print(f"Checkbox toggled: {self.checked}")
+    
+    def is_clicked(self, event):
+        return event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos)
+    
+    def click(self, event):
+        if self.is_clicked(event):
+            print("Checkbox clicked")
+            self.toggle()
+    
+    def check(self):
+        return self.checked
+    
+
 
 # Useful functions -------------------
 
@@ -60,14 +93,18 @@ def get_apple_pos():
 # SCREENS -------------------
 
 def main_menu():
+    font = pygame.font.SysFont("Arial", 36)
+    text = font.render("Snake Game", True, WHITE)
+    text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))
+    checkbox = CheckBox(WIDTH // 2 - 100, HEIGHT // 2 - 50, "Enable walls", checked=False)
+    start_button = Button(WIDTH // 2 - 50, HEIGHT // 2, 100, 50, "Start")
     while True:
         WINDOW.fill(BLACK)
-        font = pygame.font.SysFont("Arial", 36)
-        text = font.render("Snake Game", True, WHITE)
-        text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+        
         WINDOW.blit(text, text_rect)
 
-        start_button = Button(WIDTH // 2 - 50, HEIGHT // 2, 100, 50, "Start")
+        # Draw the checkbox
+        checkbox.draw(WINDOW)
         start_button.draw(WINDOW)
 
         for event in pygame.event.get():
@@ -75,11 +112,12 @@ def main_menu():
                 pygame.quit()
                 exit()
             if start_button.is_clicked(event):
-                return
+                return checkbox.check()
+            checkbox.click(event)
 
         pygame.display.flip()
 
-def game():
+def game(enable_walls=False):
     global SNAKE_SIZE, WINDOW, FPS
     SNAKE_SPEED = 15
     # Создаем змейку
@@ -132,28 +170,31 @@ def game():
 
         # If a new head position is calculated, add it to the snake
         if new_head:
+            if enable_walls:
+                # Check for wall collisions
+                if new_head[0] < 0 or new_head[0] >= WIDTH or new_head[1] < 0 or new_head[1] >= HEIGHT:
+                    print("Game Over")
+                    print(new_head)
+                    return count_apples
+            else:
+                # Infifinite board
+                if new_head[0] < 0:
+                    new_head = (WIDTH - SNAKE_SIZE, new_head[1])
+                elif new_head[0] >= WIDTH:
+                    new_head = (0, new_head[1])
+                elif new_head[1] < 0:
+                    new_head = (new_head[0], HEIGHT - SNAKE_SIZE)
+                elif new_head[1] >= HEIGHT:
+                    new_head = (new_head[0], 0)
+                
             # Check for game over conditions
+            
             if new_head in snake_pos:
                 print("Game Over")
                 print(new_head)
                 return count_apples
 
-            # Check for wall collisions
-            # if new_head[0] < 0 or new_head[0] >= WIDTH or new_head[1] < 0 or new_head[1] >= HEIGHT:
-            #     print("Game Over")
-            #     print(new_head)
-            #     break
 
-            # Infifinite board
-            if new_head[0] < 0:
-                new_head = (WIDTH - SNAKE_SIZE, new_head[1])
-            elif new_head[0] >= WIDTH:
-                new_head = (0, new_head[1])
-            elif new_head[1] < 0:
-                new_head = (new_head[0], HEIGHT - SNAKE_SIZE)
-            elif new_head[1] >= HEIGHT:
-                new_head = (new_head[0], 0)
-                
             
             if new_head == apple:
                 apple = get_apple_pos()
@@ -219,11 +260,12 @@ def game_over(count_apples):
         pygame.display.flip()
 
 
+# Запуск игры --------------------------------------
 
-main_menu()
 while True:
+    enable_walls = main_menu()
     # Start the game
-    count_apples = game()
+    count_apples = game(enable_walls=enable_walls)
     # Restart the game
     if not game_over(count_apples):
         break
